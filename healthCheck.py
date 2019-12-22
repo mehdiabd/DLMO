@@ -8,16 +8,10 @@ __author__ = "S. Mehdi Abdollahi"
 # Main
 if __name__ == '__main__':
 
-    wb = Workbook()
-    ws = wb.active
-
-
     def get_short_date(days_interval=0, sdate=None):
         sdate = datetime.strptime(str(sdate), '%y%m%d') if sdate else datetime.today()
         return int((sdate + timedelta(days=days_interval)).strftime('%y%m%d'))
-
-
-    gsd = get_short_date(-1)
+    gsd = get_short_date()
 
     # DB configuration
     dcf_db = MongoClient("mongodb://172.30.96.230:27017", connect=False)['dcf']
@@ -171,24 +165,20 @@ if __name__ == '__main__':
 
     print("Checking the System Health ...")
 
-    ws.append(["IP", "DCF Bucket", "DCF Singular", "ADF Line Quality", "ADF Weighted Quality", "DLM Selection Prequalify",
-               "DLM Initial Profile Selection", "DLM NE Profile Sync", "DLM Profile Configuration Function",
-               "IPS Waiting Ports", "PCF Success", "PCF Roll Back", "PCF Line Down", "PCF Retry Limit Reach",
-               "PCF C Profile N/A"])
+    extension = ".csv"
 
-    # with open("rpt-" + str(gsd) + extension, "w") as f:
-    #     f.write("IP, DCF Bucket, DCF Singular, ADF Line Quality, ADF Weighted Quality, DLM Selection Prequalify, "
-    #             "DLM Initial Profile Selection, DLM NE Profile Sync, DLM Profile Configuration Function,"
-    #             "IPS Waiting Ports, PCF Success, PCF Roll Back, PCF Line Down, PCF Retry Limit Reach, "
-    #             "PCF C Profile N/A")
-    #     f.write("\n")
+    with open("rpt-" + str(gsd) + extension, "w") as f:
+        f.write("IP, DCF Bucket, DCF Singular, ADF Line Quality, ADF Weighted Quality, DLM Selection Prequalify, "
+                "DLM Initial Profile Selection, DLM NE Profile Sync, DLM Profile Configuration Function,"
+                "IPS Waiting Ports, PCF Success, PCF Roll Back, PCF Line Down, PCF Retry Limit Reach, "
+                "PCF C Profile N/A")
+        f.write("\n")
 
     for ip in pilot_ips:
 
         def cursor(db, clt, par1, par2):
             res = db[clt].find_one({par1: par2, "sdate": gsd})
             return res
-
 
         pcfDict = {}
         ipsDict = {}
@@ -283,18 +273,15 @@ if __name__ == '__main__':
                             pcfDict[id['_id']['erro']] = id['count']
 
         # Output File
-        # with open("rpt-" + str(gsd) + extension, "a") as f:
-        #     if status:
-        #         f.write(ip + ',')
-        #         f.write(','.join(status))
-        #         f.write("," + str(int(ipsDict['count']) if 'count' in ipsDict else 0))
-        #         f.write("," + str(int(pcfDict['Success']) if 'Success' in pcfDict else 0))
-        #         f.write("," + str(int(pcfDict['rolled back']) if 'rolled back' in pcfDict else 0))
-        #         f.write("," + str(int(pcfDict['line is down']) if 'line is down' in pcfDict else 0))
-        #         f.write("," + str(int(pcfDict['retry limit reached!']) if 'retry limit reached!' in pcfDict else 0))
-        #         f.write("," + str(int(pcfDict[
-        #                                   'current profile is not available']) if 'current profile is not available' in pcfDict else 0))
-        #         f.write("\n")
-        #     f.close()
-
-    wb.save("x.xlsx")
+        with open("rpt-" + str(gsd) + extension, "a") as f:
+            if status:
+                f.write(ip+',')
+                f.write(','.join(status))
+                f.write("," + str(int(ipsDict['count']) if 'count' in ipsDict else 0))
+                f.write("," + str(int(pcfDict['Success']) if 'Success' in pcfDict else 0))
+                f.write("," + str(int(pcfDict['rolled back']) if 'rolled back' in pcfDict else 0))
+                f.write("," + str(int(pcfDict['line is down']) if 'line is down' in pcfDict else 0))
+                f.write("," + str(int(pcfDict['retry limit reached!']) if 'retry limit reached!' in pcfDict else 0))
+                f.write("," + str(int(pcfDict['current profile is not available']) if 'current profile is not available' in pcfDict else 0))
+                f.write("\n")
+            f.close()
