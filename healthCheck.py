@@ -8,15 +8,22 @@ __author__ = "S. Mehdi Abdollahi"
 # Main
 if __name__ == '__main__':
 
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "DLMO Health Check"
+    ws.sheet_properties.tabColor = "1174BD"
+
     def get_short_date(days_interval=0, sdate=None):
         sdate = datetime.strptime(str(sdate), '%y%m%d') if sdate else datetime.today()
         return int((sdate + timedelta(days=days_interval)).strftime('%y%m%d'))
-    gsd = get_short_date()
+
+    gsd = get_short_date(-1)
 
     # DB configuration
     dcf_db = MongoClient("mongodb://172.30.96.230:27017", connect=False)['dcf']
     adf_db = MongoClient("mongodb://172.30.96.235:27017,172.30.96.236:27017,"
-                         "172.30.96.237:27017/?replicaSet=ADFrs&readPreference=secondaryPreferred", connect=False)['adf']
+                         "172.30.96.237:27017/?replicaSet=ADFrs&readPreference=secondaryPreferred", connect=False)[
+        'adf']
     dlm_db = MongoClient("mongodb://172.30.96.132:27017", connect=False)['dlm']
 
     # IPs
@@ -165,15 +172,22 @@ if __name__ == '__main__':
 
     print("Checking the System Health ...")
 
-    extension = ".csv"
+    # extension = ".csv"
+    #
+    # with open("rpt-" + str(gsd) + extension, "w") as f:
+    #     f.write("IP, DCF Bucket, DCF Singular, ADF Line Quality, ADF Weighted Quality, DLM Selection Prequalify, "
+    #             "DLM Initial Profile Selection, DLM NE Profile Sync, DLM Profile Configuration Function,"
+    #             "IPS Waiting Ports, PCF Success, PCF Roll Back, PCF Line Down, PCF Retry Limit Reach, "
+    #             "PCF C Profile N/A")
+    #     f.write("\n")
 
-    with open("rpt-" + str(gsd) + extension, "w") as f:
-        f.write("IP, DCF Bucket, DCF Singular, ADF Line Quality, ADF Weighted Quality, DLM Selection Prequalify, "
-                "DLM Initial Profile Selection, DLM NE Profile Sync, DLM Profile Configuration Function,"
-                "IPS Waiting Ports, PCF Success, PCF Roll Back, PCF Line Down, PCF Retry Limit Reach, "
-                "PCF C Profile N/A")
-        f.write("\n")
+    ws.append(["IP", "DCF Bucket", "DCF Singular", "ADF Line Quality", "ADF Weighted Quality", "DLM Selection "
+                                                                                               "Prequalify",
+               "DLM Initial Profile Selection", "DLM NE Profile Sync", "DLM Profile Configuration Function",
+               "IPS Waiting Ports", "PCF Success", "PCF Roll Back", "PCF Line Down", "PCF Retry Limit Reach",
+               "PCF C Profile N/A", "TOTAL"])
 
+    counter = 2
     for ip in pilot_ips:
 
         def cursor(db, clt, par1, par2):
@@ -188,6 +202,7 @@ if __name__ == '__main__':
         dcf_bucket_res = cursor(dcf_db, collection, "ptype", 'b/i')
         if not dcf_bucket_res:
             status.extend(["Null"] * 4)
+
         else:
             status.append("OK")
 
@@ -273,15 +288,44 @@ if __name__ == '__main__':
                             pcfDict[id['_id']['erro']] = id['count']
 
         # Output File
-        with open("rpt-" + str(gsd) + extension, "a") as f:
-            if status:
-                f.write(ip+',')
-                f.write(','.join(status))
-                f.write("," + str(int(ipsDict['count']) if 'count' in ipsDict else 0))
-                f.write("," + str(int(pcfDict['Success']) if 'Success' in pcfDict else 0))
-                f.write("," + str(int(pcfDict['rolled back']) if 'rolled back' in pcfDict else 0))
-                f.write("," + str(int(pcfDict['line is down']) if 'line is down' in pcfDict else 0))
-                f.write("," + str(int(pcfDict['retry limit reached!']) if 'retry limit reached!' in pcfDict else 0))
-                f.write("," + str(int(pcfDict['current profile is not available']) if 'current profile is not available' in pcfDict else 0))
-                f.write("\n")
-            f.close()
+        # with open("rpt-" + str(gsd) + extension, "a") as f:
+        #     if status:
+        #         f.write(ip + ',')
+        #         f.write(','.join(status))
+        #         f.write("," + str(int(ipsDict['count']) if 'count' in ipsDict else 0))
+        #         f.write("," + str(int(pcfDict['Success']) if 'Success' in pcfDict else 0))
+        #         f.write("," + str(int(pcfDict['rolled back']) if 'rolled back' in pcfDict else 0))
+        #         f.write("," + str(int(pcfDict['line is down']) if 'line is down' in pcfDict else 0))
+        #         f.write("," + str(int(pcfDict['retry limit reached!']) if 'retry limit reached!' in pcfDict else 0))
+        #         f.write("," + str(int(pcfDict[
+        #                                   'current profile is not available']) if 'current profile is not available' in pcfDict else 0))
+        #         f.write("\n")
+        #     f.close()
+
+                a= int(ipsDict['count']) if 'count' in ipsDict else 0
+                b=int(pcfDict['Success']) if 'Success' in pcfDict else 0
+                c=int(pcfDict['rolled back']) if 'rolled back' in pcfDict else 0
+                d=int(pcfDict['line is down']) if 'line is down' in pcfDict else 0
+                e=int(pcfDict['retry limit reached!']) if 'retry limit reached!' in pcfDict else 0
+                f=int(pcfDict['current profile is not available']) if 'current profile is not available' in pcfDict else 0
+
+        # for x in range(0, len(status)):
+        #     for y in range(1, len(pilot_ips)+1):
+
+            ws.append([ip])
+            for c in range(2,10):
+                for i in status:
+                    ws.cell(row=counter, column=c, value=i)
+            ws.cell(row=counter, column=10, value=a)
+            ws.cell(row=counter, column=11, value=b)
+            ws.cell(row=counter, column=12, value=c)
+            ws.cell(row=counter, column=13, value=d)
+            ws.cell(row=counter, column=14, value=e)
+            ws.cell(row=counter, column=15, value=f)
+            # ws.cell(row=counter, column=16, value=)
+            ws[f"P{counter}"] = f'= SUM(K{counter}:O{counter})'
+        counter += 1
+
+
+    wb.save("rpt-"+str(gsd)+".xlsx")
+
