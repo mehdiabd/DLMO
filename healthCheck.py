@@ -11,12 +11,11 @@ if __name__ == '__main__':
     wb = Workbook()
     ws = wb.active
     ws.title = "DLMO Health Check"
-    ws.sheet_properties.tabColor = "1174BD"
+    ws.sheet_properties.tabColor = "000000"
 
     def get_short_date(days_interval=0, sdate=None):
         sdate = datetime.strptime(str(sdate), '%y%m%d') if sdate else datetime.today()
         return int((sdate + timedelta(days=days_interval)).strftime('%y%m%d'))
-
     gsd = get_short_date(-1)
 
     # DB configuration
@@ -181,60 +180,64 @@ if __name__ == '__main__':
     #             "PCF C Profile N/A")
     #     f.write("\n")
 
-    ws.append(["IP", "DCF Bucket", "DCF Singular", "ADF Line Quality", "ADF Weighted Quality", "DLM Selection "
-                                                                                               "Prequalify",
+    ws.append(["IP", "DCF Bucket", "DCF Singular", "ADF Line Quality", "ADF Weighted Quality", "DLM Selection Prequalify",
                "DLM Initial Profile Selection", "DLM NE Profile Sync", "DLM Profile Configuration Function",
                "IPS Waiting Ports", "PCF Success", "PCF Roll Back", "PCF Line Down", "PCF Retry Limit Reach",
-               "PCF C Profile N/A", "TOTAL"])
+               "PCF C Profile N/A", "PCF Total"])
 
     counter = 2
+
     for ip in pilot_ips:
+        status = []
+        pcfDict = {}
+        ipsDict = {}
+        ws.append([ip])
+        collection = "ne" + str(int(ip_address(ip)))
 
         def cursor(db, clt, par1, par2):
             res = db[clt].find_one({par1: par2, "sdate": gsd})
             return res
 
-        pcfDict = {}
-        ipsDict = {}
-        collection = "ne" + str(int(ip_address(ip)))
-        status = []
-
         dcf_bucket_res = cursor(dcf_db, collection, "ptype", 'b/i')
         if not dcf_bucket_res:
-            status.extend(["Null"] * 4)
-
+            for i in range(2, 6):
+                ws.cell(row=counter, column=i, value='Null')
         else:
-            status.append("OK")
+            ws.cell(row=counter, column=2, value='OK')
 
             dcf_singular_res = cursor(dcf_db, collection, "ptype", 's/i')
             if not dcf_singular_res:
-                status.append("Null")
+                for i in range(3, 6):
+                    ws.cell(row=counter, column=i, value='Null')
             else:
-                status.append("OK")
+                ws.cell(row=counter, column=3, value='OK')
 
             adf_res_lq = cursor(adf_db, 'line_quality', 'ip_adr', ip)
             if not adf_res_lq:
-                status.extend(["Null"] * 2)
+                for i in range(4, 6):
+                    ws.cell(row=counter, column=i, value='Null')
             else:
-                status.append("OK")
+                ws.cell(row=counter, column=4, value='OK')
 
                 adf_res_wq = cursor(adf_db, 'weighted_quality', 'ip_adr', ip)
                 if not adf_res_wq:
-                    status.append("Null")
+                    ws.cell(row=counter, column=5, value='Null')
                 else:
-                    status.append("OK")
+                    ws.cell(row=counter, column=5, value='OK')
 
         dlm_res_sp = cursor(dlm_db, 'selection_prequalify', 'ip_adr', ip)
         if not dlm_res_sp:
-            status.extend(["Null"] * 4)
+            for i in range(6, 10):
+                ws.cell(row=counter, column=i, value='Null')
         else:
-            status.append("OK")
+            ws.cell(row=counter, column=6, value='OK')
 
             dlm_res_ips = cursor(dlm_db, 'initial_profile_selection', 'ip_adr', ip)
             if not dlm_res_ips:
-                status.extend(["Null"] * 3)
+                for i in range(7, 10):
+                    ws.cell(row=counter, column=i, value='Null')
             else:
-                status.append("OK")
+                ws.cell(row=counter, column=7, value='OK')
 
                 ips_wait = dlm_db['initial_profile_selection'].aggregate(
                     [
@@ -256,15 +259,15 @@ if __name__ == '__main__':
 
                 dlm_res_nps = cursor(dlm_db, 'ne_profile_sync', 'ip_adr', ip)
                 if not dlm_res_nps:
-                    status.append("Null")
+                    ws.cell(row=counter, column=8, value='Null')
                 else:
-                    status.append("OK")
+                    ws.cell(row=counter, column=8, value='OK')
 
                 dlm_res_pcf = cursor(dlm_db, 'profile_configuration_function', 'ip_adr', ip)
                 if not dlm_res_pcf:
-                    status.append("Null")
+                    ws.cell(row=counter, column=9, value='Null')
                 else:
-                    status.append("OK")
+                    ws.cell(row=counter, column=9, value='OK')
 
                     pcf_res_se = dlm_db['profile_configuration_function'].aggregate(
                         [
@@ -287,45 +290,21 @@ if __name__ == '__main__':
                         else:
                             pcfDict[id['_id']['erro']] = id['count']
 
-        # Output File
-        # with open("rpt-" + str(gsd) + extension, "a") as f:
-        #     if status:
-        #         f.write(ip + ',')
-        #         f.write(','.join(status))
-        #         f.write("," + str(int(ipsDict['count']) if 'count' in ipsDict else 0))
-        #         f.write("," + str(int(pcfDict['Success']) if 'Success' in pcfDict else 0))
-        #         f.write("," + str(int(pcfDict['rolled back']) if 'rolled back' in pcfDict else 0))
-        #         f.write("," + str(int(pcfDict['line is down']) if 'line is down' in pcfDict else 0))
-        #         f.write("," + str(int(pcfDict['retry limit reached!']) if 'retry limit reached!' in pcfDict else 0))
-        #         f.write("," + str(int(pcfDict[
-        #                                   'current profile is not available']) if 'current profile is not available' in pcfDict else 0))
-        #         f.write("\n")
-        #     f.close()
+        a = int(ipsDict['count']) if 'count' in ipsDict else 0
+        b = int(pcfDict['Success']) if 'Success' in pcfDict else 0
+        c = int(pcfDict['rolled back']) if 'rolled back' in pcfDict else 0
+        d = int(pcfDict['line is down']) if 'line is down' in pcfDict else 0
+        e = int(pcfDict['retry limit reached!']) if 'retry limit reached!' in pcfDict else 0
+        f = int(pcfDict['current profile is not available']) if 'current profile is not available' in pcfDict else 0
 
-                a= int(ipsDict['count']) if 'count' in ipsDict else 0
-                b=int(pcfDict['Success']) if 'Success' in pcfDict else 0
-                c=int(pcfDict['rolled back']) if 'rolled back' in pcfDict else 0
-                d=int(pcfDict['line is down']) if 'line is down' in pcfDict else 0
-                e=int(pcfDict['retry limit reached!']) if 'retry limit reached!' in pcfDict else 0
-                f=int(pcfDict['current profile is not available']) if 'current profile is not available' in pcfDict else 0
+        ws.cell(row=counter, column=10, value=a)
+        ws.cell(row=counter, column=11, value=b)
+        ws.cell(row=counter, column=12, value=c)
+        ws.cell(row=counter, column=13, value=d)
+        ws.cell(row=counter, column=14, value=e)
+        ws.cell(row=counter, column=15, value=f)
+        ws[f"P{counter}"] = f'= SUM(K{counter}:O{counter})'
 
-        # for x in range(0, len(status)):
-        #     for y in range(1, len(pilot_ips)+1):
-
-            ws.append([ip])
-            for c in range(2,10):
-                for i in status:
-                    ws.cell(row=counter, column=c, value=i)
-            ws.cell(row=counter, column=10, value=a)
-            ws.cell(row=counter, column=11, value=b)
-            ws.cell(row=counter, column=12, value=c)
-            ws.cell(row=counter, column=13, value=d)
-            ws.cell(row=counter, column=14, value=e)
-            ws.cell(row=counter, column=15, value=f)
-            # ws.cell(row=counter, column=16, value=)
-            ws[f"P{counter}"] = f'= SUM(K{counter}:O{counter})'
         counter += 1
 
-
     wb.save("rpt-"+str(gsd)+".xlsx")
-
