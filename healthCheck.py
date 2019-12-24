@@ -180,8 +180,9 @@ if __name__ == '__main__':
     #             "PCF C Profile N/A")
     #     f.write("\n")
 
-    ws.append(["IP", "DCF Bucket", "DCF Singular", "ADF Line Quality", "ADF Weighted Quality", "DLM Selection Prequalify",
-               "DLM Initial Profile Selection", "DLM NE Profile Sync", "DLM Profile Configuration Function",
+    ws.append(["IP", "DCF Bucket", "DCF Singular", "ADF Line Quality", "ADF Weighted Quality",
+               "DLM Selection Prequalify", "DLM Initial Profile Selection", "DLM NE Profile Sync",
+               "DLM Profile Configuration Function", "SP InProgress", "SP Stabilize", "SP Optimize", "SP Total",
                "IPS Waiting Ports", "PCF Success", "PCF Roll Back", "PCF Line Down", "PCF Retry Limit Reach",
                "PCF C Profile N/A", "PCF Total"])
 
@@ -191,6 +192,7 @@ if __name__ == '__main__':
         status = []
         pcfDict = {}
         ipsDict = {}
+        spDict = {}
         ws.append([ip])
         collection = "ne" + str(int(ip_address(ip)))
 
@@ -231,6 +233,29 @@ if __name__ == '__main__':
                 ws.cell(row=counter, column=i, value='Null')
         else:
             ws.cell(row=counter, column=6, value='OK')
+
+            dlm_sp_res = dlm_db['selection_prequalify'].aggregate(
+                [
+                    {"$match": {"sdate": gsd, "ip_adr": ip}},
+                    {"$project": {"state": 1}},
+                    {
+                        "$group":
+                            {
+                                "_id": "$state"
+                                , "count": {"$sum": 1}
+                            }
+                    }
+                ]
+            )
+
+            dlm_sp_res = list(dlm_sp_res)
+            for id in dlm_sp_res:
+                if id['_id'] == "InProgress":
+                    spDict["InProgress"] = id['count']
+                elif id['_id'] == "Stabilize":
+                    spDict['Stabilize'] = id['count']
+                else:
+                    spDict['Optimize'] = id['count']
 
             dlm_res_ips = cursor(dlm_db, 'initial_profile_selection', 'ip_adr', ip)
             if not dlm_res_ips:
@@ -290,20 +315,27 @@ if __name__ == '__main__':
                         else:
                             pcfDict[id['_id']['erro']] = id['count']
 
-        a = int(ipsDict['count']) if 'count' in ipsDict else 0
-        b = int(pcfDict['Success']) if 'Success' in pcfDict else 0
-        c = int(pcfDict['rolled back']) if 'rolled back' in pcfDict else 0
-        d = int(pcfDict['line is down']) if 'line is down' in pcfDict else 0
-        e = int(pcfDict['retry limit reached!']) if 'retry limit reached!' in pcfDict else 0
-        f = int(pcfDict['current profile is not available']) if 'current profile is not available' in pcfDict else 0
+        g = int(spDict.get('InProgress', 0))
+        h = int(spDict.get('Stabilize', 0))
+        i = int(spDict.get('Optimize', 0))
+        a = int(ipsDict.get('count', 0))
+        b = int(pcfDict.get('Success', 0))
+        c = int(pcfDict.get('rolled back', 0))
+        d = int(pcfDict.get('line is down', 0))
+        e = int(pcfDict.get('retry limit reached!', 0))
+        f = int(pcfDict.get('current profile is not available', 0))
 
-        ws.cell(row=counter, column=10, value=a)
-        ws.cell(row=counter, column=11, value=b)
-        ws.cell(row=counter, column=12, value=c)
-        ws.cell(row=counter, column=13, value=d)
-        ws.cell(row=counter, column=14, value=e)
-        ws.cell(row=counter, column=15, value=f)
-        ws[f"P{counter}"] = f'= SUM(K{counter}:O{counter})'
+        ws.cell(row=counter, column=10, value=g)
+        ws.cell(row=counter, column=11, value=h)
+        ws.cell(row=counter, column=12, value=i)
+        ws[f"M{counter}"] = f'= SUM(J{counter}:L{counter})'
+        ws.cell(row=counter, column=14, value=a)
+        ws.cell(row=counter, column=15, value=b)
+        ws.cell(row=counter, column=16, value=c)
+        ws.cell(row=counter, column=17, value=d)
+        ws.cell(row=counter, column=18, value=e)
+        ws.cell(row=counter, column=19, value=f)
+        ws[f"T{counter}"] = f'= SUM(O{counter}:S{counter})'
 
         counter += 1
 
