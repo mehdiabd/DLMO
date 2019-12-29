@@ -8,7 +8,7 @@ if __name__ == "__main__":
                          "172.30.96.222:27017/?replicaSet=SCFrs&readPreference=secondaryPreferred", connect=False)[
         'scf']
 
-    res = scf_db['network_element'].find({"ip_address": {"$nin": [
+    res = scf_db['network_element'].find({"ip_address": {"$in": [
         "172.31.18.4",
         "172.31.18.5",
         "172.31.18.6",
