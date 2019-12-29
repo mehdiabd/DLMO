@@ -165,34 +165,24 @@ if __name__ == '__main__':
         "172.31.34.50",
         "172.31.34.53"
     ]
-
     # Chitgar IP
     # pilot_ips = ["10.41.16.17"]
 
     print("Checking the System Health ...")
 
-    # extension = ".csv"
-    #
-    # with open("rpt-" + str(gsd) + extension, "w") as f:
-    #     f.write("IP, DCF Bucket, DCF Singular, ADF Line Quality, ADF Weighted Quality, DLM Selection Prequalify, "
-    #             "DLM Initial Profile Selection, DLM NE Profile Sync, DLM Profile Configuration Function,"
-    #             "IPS Waiting Ports, PCF Success, PCF Roll Back, PCF Line Down, PCF Retry Limit Reach, "
-    #             "PCF C Profile N/A")
-    #     f.write("\n")
-
     ws.append(["IP", "DCF Bucket", "DCF Singular", "ADF Line Quality", "ADF Weighted Quality",
                "DLM Selection Prequalify", "DLM Initial Profile Selection", "DLM NE Profile Sync",
-               "DLM Profile Configuration Function", "SP InProgress", "SP Stabilize", "SP Optimize", "SP Total",
-               "IPS Waiting Ports", "PCF Success", "PCF Roll Back", "PCF Line Down", "PCF Retry Limit Reach",
-               "PCF C Profile N/A", "PCF Total"])
+               "DLM Profile Configuration Function", "SP InProgress", "SP Stabilize", "SP Optimize", "SP TOTAL",
+               "IPS Waiting", "IPS Initial", "IPS Operation", "IPS OptimizeImpossible", "IPS Unstable", "IPS TOTAL",
+               "PCF Success", "PCF Roll Back", "PCF Line Down", "PCF Retry Limit Reach", "PCF C Profile N/A",
+               "PCF TOTAL"])
 
     counter = 2
 
     for ip in pilot_ips:
-        status = []
-        pcfDict = {}
-        ipsDict = {}
         spDict = {}
+        ipsDict = {}
+        pcfDict = {}
         ws.append([ip])
         collection = "ne" + str(int(ip_address(ip)))
 
@@ -264,23 +254,32 @@ if __name__ == '__main__':
             else:
                 ws.cell(row=counter, column=7, value='OK')
 
-                ips_wait = dlm_db['initial_profile_selection'].aggregate(
+                dlm_ips_res = dlm_db['initial_profile_selection'].aggregate(
                     [
-                        {"$match": {"sdate": gsd, "ip_adr": ip, "action_type": "Waiting"}},
-                        {"$project": {"action_type": 1}},
+                        {"$match": {"sdate": gsd, "ip_adr": ip}},
+                        {"$project": {"state": 1}},
                         {
                             "$group":
                                 {
-                                    "_id": {"at": "$action_type"}
+                                    "_id": "$state"
                                     , "count": {"$sum": 1}
                                 }
                         }
                     ]
                 )
 
-                ips_wait = list(ips_wait)
-                for ne in ips_wait:
-                    ipsDict['count'] = ne['count']
+                dlm_ips_res = list(dlm_ips_res)
+                for i in dlm_ips_res:
+                    if i['_id'] == "Waiting":
+                        ipsDict["Waiting"] = i['count']
+                    elif i['_id'] == "Initial":
+                        ipsDict["Initial"] = i['count']
+                    elif i['_id'] == "Operation":
+                        ipsDict["Operation"] = i['count']
+                    elif i['_id'] == "OptimizeImpossible":
+                        ipsDict["OptimizeImpossible"] = i['count']
+                    else:
+                        ipsDict['Unstable'] = i['count']
 
                 dlm_res_nps = cursor(dlm_db, 'ne_profile_sync', 'ip_adr', ip)
                 if not dlm_res_nps:
@@ -315,10 +314,17 @@ if __name__ == '__main__':
                         else:
                             pcfDict[id['_id']['erro']] = id['count']
 
+        # DLM SP
         g = int(spDict.get('InProgress', 0))
         h = int(spDict.get('Stabilize', 0))
         i = int(spDict.get('Optimize', 0))
-        a = int(ipsDict.get('count', 0))
+        # DLM IPS
+        j = int(ipsDict.get('Waiting', 0))
+        k = int(ipsDict.get('Initial', 0))
+        l = int(ipsDict.get('Operation', 0))
+        m = int(ipsDict.get('OptimizeImpossible', 0))
+        a = int(ipsDict.get('Unstable', 0))
+        # DLM PCF
         b = int(pcfDict.get('Success', 0))
         c = int(pcfDict.get('rolled back', 0))
         d = int(pcfDict.get('line is down', 0))
@@ -329,14 +335,19 @@ if __name__ == '__main__':
         ws.cell(row=counter, column=11, value=h)
         ws.cell(row=counter, column=12, value=i)
         ws[f"M{counter}"] = f'= SUM(J{counter}:L{counter})'
-        ws.cell(row=counter, column=14, value=a)
-        ws.cell(row=counter, column=15, value=b)
-        ws.cell(row=counter, column=16, value=c)
-        ws.cell(row=counter, column=17, value=d)
-        ws.cell(row=counter, column=18, value=e)
-        ws.cell(row=counter, column=19, value=f)
-        ws[f"T{counter}"] = f'= SUM(O{counter}:S{counter})'
+        ws.cell(row=counter, column=14, value=j)
+        ws.cell(row=counter, column=15, value=k)
+        ws.cell(row=counter, column=16, value=l)
+        ws.cell(row=counter, column=17, value=m)
+        ws.cell(row=counter, column=18, value=a)
+        ws[f"S{counter}"] = f'= SUM(N{counter}:R{counter})'
+        ws.cell(row=counter, column=20, value=b)
+        ws.cell(row=counter, column=21, value=c)
+        ws.cell(row=counter, column=22, value=d)
+        ws.cell(row=counter, column=23, value=e)
+        ws.cell(row=counter, column=24, value=f)
+        ws[f"Y{counter}"] = f'= SUM(T{counter}:X{counter})'
 
         counter += 1
 
-    wb.save("rpt-"+str(gsd)+".xlsx")
+    wb.save("rpt-" + str(gsd) + ".xlsx")
