@@ -170,7 +170,7 @@ if __name__ == '__main__':
 
     print("Checking the System Health ...")
 
-    ws.append(["IP", "DCF Bucket", "DCF Singular", "ADF Line Quality", "ADF Weighted Quality",
+    ws.append(["IP", "DCF p/n", "DCF Bucket", "DCF Singular", "ADF Line Quality", "ADF Weighted Quality",
                "DLM Selection Prequalify", "DLM Initial Profile Selection", "DLM NE Profile Sync",
                "DLM Profile Configuration Function", "SP InProgress", "SP Stabilize", "SP Optimize", "SP TOTAL",
                "IPS Waiting", "IPS Initial", "IPS Operation", "IPS OptimizeImpossible", "IPS Unstable", "IPS TOTAL",
@@ -190,39 +190,45 @@ if __name__ == '__main__':
             res = db[clt].find_one({par1: par2, "sdate": gsd})
             return res
 
-        dcf_bucket_res = cursor(dcf_db, collection, "ptype", 'b/i')
-        if not dcf_bucket_res:
-            for i in range(2, 6):
-                ws.cell(row=counter, column=i, value='Null')
+        dcf_pn_res = cursor(dcf_db, collection, "ptype", 'p/n')
+        if not dcf_pn_res:
+            ws.cell(row=counter, column=2, value='Null')
         else:
             ws.cell(row=counter, column=2, value='OK')
 
+        dcf_bucket_res = cursor(dcf_db, collection, "ptype", 'b/i')
+        if not dcf_bucket_res:
+            for i in range(3, 7):
+                ws.cell(row=counter, column=i, value='Null')
+        else:
+            ws.cell(row=counter, column=3, value='OK')
+
             dcf_singular_res = cursor(dcf_db, collection, "ptype", 's/i')
             if not dcf_singular_res:
-                for i in range(3, 6):
-                    ws.cell(row=counter, column=i, value='Null')
-            else:
-                ws.cell(row=counter, column=3, value='OK')
-
-            adf_res_lq = cursor(adf_db, 'line_quality', 'ip_adr', ip)
-            if not adf_res_lq:
-                for i in range(4, 6):
+                for i in range(4, 7):
                     ws.cell(row=counter, column=i, value='Null')
             else:
                 ws.cell(row=counter, column=4, value='OK')
 
+            adf_res_lq = cursor(adf_db, 'line_quality', 'ip_adr', ip)
+            if not adf_res_lq:
+                for i in range(5, 7):
+                    ws.cell(row=counter, column=i, value='Null')
+            else:
+                ws.cell(row=counter, column=5, value='OK')
+
                 adf_res_wq = cursor(adf_db, 'weighted_quality', 'ip_adr', ip)
                 if not adf_res_wq:
-                    ws.cell(row=counter, column=5, value='Null')
+                    ws.cell(row=counter, column=6, value='Null')
                 else:
-                    ws.cell(row=counter, column=5, value='OK')
+                    ws.cell(row=counter, column=6, value='OK')
 
         dlm_res_sp = cursor(dlm_db, 'selection_prequalify', 'ip_adr', ip)
         if not dlm_res_sp:
-            for i in range(6, 10):
+            for i in range(7, 11):
                 ws.cell(row=counter, column=i, value='Null')
         else:
-            ws.cell(row=counter, column=6, value='OK')
+            ws.cell(row=counter, column=7, value='OK')
 
             dlm_sp_res = dlm_db['selection_prequalify'].aggregate(
                 [
@@ -249,10 +255,10 @@ if __name__ == '__main__':
 
             dlm_res_ips = cursor(dlm_db, 'initial_profile_selection', 'ip_adr', ip)
             if not dlm_res_ips:
-                for i in range(7, 10):
+                for i in range(8, 11):
                     ws.cell(row=counter, column=i, value='Null')
             else:
-                ws.cell(row=counter, column=7, value='OK')
+                ws.cell(row=counter, column=8, value='OK')
 
                 dlm_ips_res = dlm_db['initial_profile_selection'].aggregate(
                     [
@@ -283,15 +289,15 @@ if __name__ == '__main__':
 
                 dlm_res_nps = cursor(dlm_db, 'ne_profile_sync', 'ip_adr', ip)
                 if not dlm_res_nps:
-                    ws.cell(row=counter, column=8, value='Null')
-                else:
-                    ws.cell(row=counter, column=8, value='OK')
-
-                dlm_res_pcf = cursor(dlm_db, 'profile_configuration_function', 'ip_adr', ip)
-                if not dlm_res_pcf:
                     ws.cell(row=counter, column=9, value='Null')
                 else:
                     ws.cell(row=counter, column=9, value='OK')
+
+                dlm_res_pcf = cursor(dlm_db, 'profile_configuration_function', 'ip_adr', ip)
+                if not dlm_res_pcf:
+                    ws.cell(row=counter, column=10, value='Null')
+                else:
+                    ws.cell(row=counter, column=10, value='OK')
 
                     pcf_res_se = dlm_db['profile_configuration_function'].aggregate(
                         [
@@ -331,22 +337,22 @@ if __name__ == '__main__':
         e = int(pcfDict.get('retry limit reached!', 0))
         f = int(pcfDict.get('current profile is not available', 0))
 
-        ws.cell(row=counter, column=10, value=g)
-        ws.cell(row=counter, column=11, value=h)
-        ws.cell(row=counter, column=12, value=i)
-        ws[f"M{counter}"] = f'= SUM(J{counter}:L{counter})'
-        ws.cell(row=counter, column=14, value=j)
-        ws.cell(row=counter, column=15, value=k)
-        ws.cell(row=counter, column=16, value=l)
-        ws.cell(row=counter, column=17, value=m)
-        ws.cell(row=counter, column=18, value=a)
-        ws[f"S{counter}"] = f'= SUM(N{counter}:R{counter})'
-        ws.cell(row=counter, column=20, value=b)
-        ws.cell(row=counter, column=21, value=c)
-        ws.cell(row=counter, column=22, value=d)
-        ws.cell(row=counter, column=23, value=e)
-        ws.cell(row=counter, column=24, value=f)
-        ws[f"Y{counter}"] = f'= SUM(T{counter}:X{counter})'
+        ws.cell(row=counter, column=11, value=g)
+        ws.cell(row=counter, column=12, value=h)
+        ws.cell(row=counter, column=13, value=i)
+        ws[f"N{counter}"] = f'= SUM(K{counter}:M{counter})'
+        ws.cell(row=counter, column=15, value=j)
+        ws.cell(row=counter, column=16, value=k)
+        ws.cell(row=counter, column=17, value=l)
+        ws.cell(row=counter, column=18, value=m)
+        ws.cell(row=counter, column=19, value=a)
+        ws[f"T{counter}"] = f'= SUM(O{counter}:S{counter})'
+        ws.cell(row=counter, column=21, value=b)
+        ws.cell(row=counter, column=22, value=c)
+        ws.cell(row=counter, column=23, value=d)
+        ws.cell(row=counter, column=24, value=e)
+        ws.cell(row=counter, column=25, value=f)
+        ws[f"Z{counter}"] = f'= SUM(U{counter}:Y{counter})'
 
         counter += 1
 
