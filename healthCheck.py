@@ -9,7 +9,8 @@ from openpyxl import Workbook
 # Main
 if __name__ == '__main__':
 
-    my_client = pymongo.MongoClient("mongodb://localhost:27017/")["res-db"]["resCol"]
+    # my_client = pymongo.MongoClient("mongodb://localhost:27017/")
+    # bulk_op = my_client.get_database('res_db').get_collection('res_cl').initialize_unordered_bulk_op()
 
     wb = Workbook()
     ws = wb.active
@@ -27,6 +28,8 @@ if __name__ == '__main__':
                          "172.30.96.237:27017/?replicaSet=ADFrs&readPreference=secondaryPreferred", connect=False)[
         'adf']
     dlm_db = MongoClient("mongodb://172.30.96.132:27017", connect=False)['dlm']
+
+    bulk_op = dlm_db.get_collection('res_cl').initialize_unordered_bulk_op()
 
 # IPs
     pilot_ips = [
@@ -349,7 +352,7 @@ if __name__ == '__main__':
                     for id in pcf_res_se:
                         if id['_id']['stat'] == "Success":
                             pcfDict["Success"] = id['count']
-                            mod_dict["Success"] = id['count']
+                            mod_dict["PCF Success"] = id['count']
                         else:
                             pcfDict[id['_id']['erro']] = id['count']
                             mod_dict[id['_id']['erro']] = id['count']
@@ -389,8 +392,11 @@ if __name__ == '__main__':
         ws.cell(row=counter, column=25, value=f)
         ws[f"Z{counter}"] = f'= SUM(U{counter}:Y{counter})'
 
-        bulk_op.find({"ip": ip, "sdate": gsd}).upsert().update.mod_dict
+        print(mod_dict)
+        bulk_op.find({"ip": ip, "sdate": gsd}).upsert().update_one({"$set": mod_dict})
 
         counter += 1
+
+    bulk_op.execute()
 
     y = wb.save("rpt-" + str(gsd) + ".xlsx")
