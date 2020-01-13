@@ -1,12 +1,15 @@
+__author__ = "S. Mehdi Abdollahi"
+
 from datetime import datetime, timedelta
 from ipaddress import ip_address
+import pymongo
 from pymongo import MongoClient
 from openpyxl import Workbook
 
-__author__ = "S. Mehdi Abdollahi"
-
 # Main
 if __name__ == '__main__':
+
+    my_client = pymongo.MongoClient("mongodb://localhost:27017/")["res-db"]["resCol"]
 
     wb = Workbook()
     ws = wb.active
@@ -18,14 +21,14 @@ if __name__ == '__main__':
         return int((sdate + timedelta(days=days_interval)).strftime('%y%m%d'))
     gsd = get_short_date(-1)
 
-    # DB configuration
+# DB configuration
     dcf_db = MongoClient("mongodb://172.30.96.230:27017", connect=False)['dcf']
     adf_db = MongoClient("mongodb://172.30.96.235:27017,172.30.96.236:27017,"
                          "172.30.96.237:27017/?replicaSet=ADFrs&readPreference=secondaryPreferred", connect=False)[
         'adf']
     dlm_db = MongoClient("mongodb://172.30.96.132:27017", connect=False)['dlm']
 
-    # IPs
+# IPs
     pilot_ips = [
         "172.31.18.4",
         "172.31.18.5",
@@ -179,56 +182,70 @@ if __name__ == '__main__':
 
     counter = 2
 
+    def cursor(db, clt, par1, par2):
+        return db[clt].find_one({par1: par2, "sdate": gsd})
+
     for ip in pilot_ips:
-        spDict = {}
+        mod_dict = {}
         ipsDict = {}
+        spDict = {}
         pcfDict = {}
         ws.append([ip])
         collection = "ne" + str(int(ip_address(ip)))
 
-        def cursor(db, clt, par1, par2):
-            res = db[clt].find_one({par1: par2, "sdate": gsd})
-            return res
-
         dcf_pn_res = cursor(dcf_db, collection, "ptype", 'p/n')
         if not dcf_pn_res:
             ws.cell(row=counter, column=2, value='Null')
+            mod_dict["DCF p/n"] = "Null"
         else:
             ws.cell(row=counter, column=2, value='OK')
+            mod_dict["DCF p/n"] = "OK"
 
         dcf_bucket_res = cursor(dcf_db, collection, "ptype", 'b/i')
         if not dcf_bucket_res:
             for i in range(3, 7):
                 ws.cell(row=counter, column=i, value='Null')
+            mod_dict.update({"DCF Bucket": "Null", "DCF Singular": "Null", "ADF Line Quality": "Null",
+                             "ADF Weighted Quality": "Null"})
         else:
             ws.cell(row=counter, column=3, value='OK')
+            mod_dict["DCF Bucket"] = "OK"
 
             dcf_singular_res = cursor(dcf_db, collection, "ptype", 's/i')
             if not dcf_singular_res:
                 for i in range(4, 7):
                     ws.cell(row=counter, column=i, value='Null')
+                mod_dict.update({"DCF Singular": "Null", "ADF Line Quality": "Null", "ADF Weighted Quality": "Null"})
             else:
                 ws.cell(row=counter, column=4, value='OK')
+                mod_dict["DCF Singular"] = "OK"
 
             adf_res_lq = cursor(adf_db, 'line_quality', 'ip_adr', ip)
             if not adf_res_lq:
                 for i in range(5, 7):
                     ws.cell(row=counter, column=i, value='Null')
+                mod_dict.update({"ADF Line Quality": "Null", "ADF Weighted Quality": "Null"})
             else:
                 ws.cell(row=counter, column=5, value='OK')
+                mod_dict["ADF Line Quality"] = "OK"
 
                 adf_res_wq = cursor(adf_db, 'weighted_quality', 'ip_adr', ip)
                 if not adf_res_wq:
                     ws.cell(row=counter, column=6, value='Null')
+                    mod_dict["ADF Weighted Quality"] = "Null"
                 else:
                     ws.cell(row=counter, column=6, value='OK')
+                    mod_dict["ADF Weighted Quality"] = "OK"
 
         dlm_res_sp = cursor(dlm_db, 'selection_prequalify', 'ip_adr', ip)
         if not dlm_res_sp:
             for i in range(7, 11):
                 ws.cell(row=counter, column=i, value='Null')
+            mod_dict.update({"DLM Selection Prequalify": "Null", "DLM Initial Profile Selection": "Null",
+                             "DLM NE Profile Sync": "Null", "DLM Profile Configuration Function": "Null"})
         else:
             ws.cell(row=counter, column=7, value='OK')
+            mod_dict["DLM Selection Prequalify"] = "OK"
 
             dlm_sp_res = dlm_db['selection_prequalify'].aggregate(
                 [
@@ -248,17 +265,23 @@ if __name__ == '__main__':
             for id in dlm_sp_res:
                 if id['_id'] == "InProgress":
                     spDict["InProgress"] = id['count']
+                    mod_dict["SP InProgress No"] = id['count']
                 elif id['_id'] == "Stabilize":
                     spDict['Stabilize'] = id['count']
+                    mod_dict["SP Stabilize No"] = id['count']
                 else:
                     spDict['Optimize'] = id['count']
+                    mod_dict["SP Optimize No"] = id['count']
 
             dlm_res_ips = cursor(dlm_db, 'initial_profile_selection', 'ip_adr', ip)
             if not dlm_res_ips:
                 for i in range(8, 11):
                     ws.cell(row=counter, column=i, value='Null')
+                mod_dict.update({"DLM Initial Profile Selection": "Null", "DLM NE Profile Sync": "Null",
+                                 "DLM Profile Configuration Function": "Null"})
             else:
                 ws.cell(row=counter, column=8, value='OK')
+                mod_dict["DLM Initial Profile Selection"] = 'OK'
 
                 dlm_ips_res = dlm_db['initial_profile_selection'].aggregate(
                     [
@@ -278,26 +301,35 @@ if __name__ == '__main__':
                 for i in dlm_ips_res:
                     if i['_id'] == "Waiting":
                         ipsDict["Waiting"] = i['count']
+                        mod_dict["Waiting"] = i['count']
                     elif i['_id'] == "Initial":
                         ipsDict["Initial"] = i['count']
+                        mod_dict["Initial"] = i['count']
                     elif i['_id'] == "Operation":
                         ipsDict["Operation"] = i['count']
+                        mod_dict["Operation"] = i['count']
                     elif i['_id'] == "OptimizeImpossible":
                         ipsDict["OptimizeImpossible"] = i['count']
+                        mod_dict["OptimizeImpossible"] = i['count']
                     else:
                         ipsDict['Unstable'] = i['count']
+                        mod_dict['Unstable'] = i['count']
 
                 dlm_res_nps = cursor(dlm_db, 'ne_profile_sync', 'ip_adr', ip)
                 if not dlm_res_nps:
                     ws.cell(row=counter, column=9, value='Null')
+                    mod_dict['DLM NE Profile Sync'] = 'Null'
                 else:
                     ws.cell(row=counter, column=9, value='OK')
+                    mod_dict['DLM NE Profile Sync'] = 'OK'
 
                 dlm_res_pcf = cursor(dlm_db, 'profile_configuration_function', 'ip_adr', ip)
                 if not dlm_res_pcf:
                     ws.cell(row=counter, column=10, value='Null')
+                    mod_dict['DLM Profile Configuration Function'] = 'Null'
                 else:
                     ws.cell(row=counter, column=10, value='OK')
+                    mod_dict['DLM Profile Configuration Function'] = 'OK'
 
                     pcf_res_se = dlm_db['profile_configuration_function'].aggregate(
                         [
@@ -317,8 +349,10 @@ if __name__ == '__main__':
                     for id in pcf_res_se:
                         if id['_id']['stat'] == "Success":
                             pcfDict["Success"] = id['count']
+                            mod_dict["Success"] = id['count']
                         else:
                             pcfDict[id['_id']['erro']] = id['count']
+                            mod_dict[id['_id']['erro']] = id['count']
 
         # DLM SP
         g = int(spDict.get('InProgress', 0))
@@ -337,6 +371,7 @@ if __name__ == '__main__':
         e = int(pcfDict.get('retry limit reached!', 0))
         f = int(pcfDict.get('current profile is not available', 0))
 
+        # Worksheet insertions
         ws.cell(row=counter, column=11, value=g)
         ws.cell(row=counter, column=12, value=h)
         ws.cell(row=counter, column=13, value=i)
@@ -354,6 +389,8 @@ if __name__ == '__main__':
         ws.cell(row=counter, column=25, value=f)
         ws[f"Z{counter}"] = f'= SUM(U{counter}:Y{counter})'
 
+        bulk_op.find({"ip": ip, "sdate": gsd}).upsert().update.mod_dict
+
         counter += 1
 
-    wb.save("rpt-" + str(gsd) + ".xlsx")
+    y = wb.save("rpt-" + str(gsd) + ".xlsx")
