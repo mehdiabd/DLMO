@@ -1,3 +1,5 @@
+from pymongo.errors import BulkWriteError
+
 __author__ = "S. Mehdi Abdollahi"
 
 from datetime import datetime, timedelta
@@ -264,13 +266,13 @@ if __name__ == '__main__':
             for id in dlm_sp_res:
                 if id['_id'] == "InProgress":
                     spDict["InProgress"] = id['count']
-                    mod_dict["SP InProgress No."] = id['count']
+                    mod_dict["SP InProgress No"] = id['count']
                 elif id['_id'] == "Stabilize":
                     spDict['Stabilize'] = id['count']
-                    mod_dict["SP Stabilize No."] = id['count']
+                    mod_dict["SP Stabilize No"] = id['count']
                 else:
                     spDict['Optimize'] = id['count']
-                    mod_dict["SP Optimize No."] = id['count']
+                    mod_dict["SP Optimize No"] = id['count']
 
             dlm_res_ips = cursor(dlm_db, 'initial_profile_selection', 'ip_adr', ip)
             if not dlm_res_ips:
@@ -300,19 +302,19 @@ if __name__ == '__main__':
                 for i in dlm_ips_res:
                     if i['_id'] == "Waiting":
                         ipsDict["Waiting"] = i['count']
-                        mod_dict["IPS Waiting No."] = i['count']
+                        mod_dict["IPS Waiting No"] = i['count']
                     elif i['_id'] == "Initial":
                         ipsDict["Initial"] = i['count']
-                        mod_dict["IPS Initial No."] = i['count']
+                        mod_dict["IPS Initial No"] = i['count']
                     elif i['_id'] == "Operation":
                         ipsDict["Operation"] = i['count']
-                        mod_dict["IPS Operation No."] = i['count']
+                        mod_dict["IPS Operation No"] = i['count']
                     elif i['_id'] == "OptimizeImpossible":
                         ipsDict["OptimizeImpossible"] = i['count']
-                        mod_dict["IPS OptimizeImpossible No."] = i['count']
+                        mod_dict["IPS OptimizeImpossible No"] = i['count']
                     else:
                         ipsDict['Unstable'] = i['count']
-                        mod_dict['IPS Unstable No.'] = i['count']
+                        mod_dict['IPS Unstable No'] = i['count']
 
                 dlm_res_nps = cursor(dlm_db, 'ne_profile_sync', 'ip_adr', ip)
                 if not dlm_res_nps:
@@ -348,7 +350,7 @@ if __name__ == '__main__':
                     for id in pcf_res_se:
                         if id['_id']['stat'] == "Success":
                             pcfDict["Success"] = id['count']
-                            mod_dict["PCF Success No."] = id['count']
+                            mod_dict["PCF Success No"] = id['count']
                         else:
                             pcfDict[id['_id']['erro']] = id['count']
                             mod_dict[id['_id']['erro']] = id['count']
@@ -393,6 +395,10 @@ if __name__ == '__main__':
 
         counter += 1
 
-    bulk_op.execute()
+    try:
+        bulk_op.execute()
+    except BulkWriteError as bwe:
+        print(bwe.details)
+        raise
 
-    y = wb.save("rpt-" + str(gsd) + ".xlsx")
+    y = wb.save("/home/mehdi/PycharmProjects/DLMO/healthCheck reports/v9/rpt-" + str(gsd) + ".xlsx")
