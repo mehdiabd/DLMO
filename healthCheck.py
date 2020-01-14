@@ -238,53 +238,21 @@ if __name__ == '__main__':
                     ws.cell(row=counter, column=6, value='OK')
                     mod_dict["ADF Weighted Quality"] = "OK"
 
-        dlm_res_sp = cursor(dlm_db, 'selection_prequalify', 'ip_adr', ip)
-        if not dlm_res_sp:
-            for i in range(7, 11):
-                ws.cell(row=counter, column=i, value='Null')
-            mod_dict.update({"DLM Selection Prequalify": "Null", "DLM Initial Profile Selection": "Null",
-                             "DLM NE Profile Sync": "Null", "DLM Profile Configuration Function": "Null"})
+        adf_wq_2 = adf_db['weighted_quality'].find_one({'ip_adr': ip, "sdate": get_short_date(-2)})
+        if not adf_wq_2:
+            continue
         else:
-            ws.cell(row=counter, column=7, value='OK')
-            mod_dict["DLM Selection Prequalify"] = "OK"
-
-            dlm_sp_res = dlm_db['selection_prequalify'].aggregate(
-                [
-                    {"$match": {"sdate": gsd, "ip_adr": ip}},
-                    {"$project": {"state": 1}},
-                    {
-                        "$group":
-                            {
-                                "_id": "$state"
-                                , "count": {"$sum": 1}
-                            }
-                    }
-                ]
-            )
-
-            dlm_sp_res = list(dlm_sp_res)
-            for id in dlm_sp_res:
-                if id['_id'] == "InProgress":
-                    spDict["InProgress"] = id['count']
-                    mod_dict["SP InProgress No"] = id['count']
-                elif id['_id'] == "Stabilize":
-                    spDict['Stabilize'] = id['count']
-                    mod_dict["SP Stabilize No"] = id['count']
-                else:
-                    spDict['Optimize'] = id['count']
-                    mod_dict["SP Optimize No"] = id['count']
-
-            dlm_res_ips = cursor(dlm_db, 'initial_profile_selection', 'ip_adr', ip)
-            if not dlm_res_ips:
-                for i in range(8, 11):
+            dlm_res_sp = cursor(dlm_db, 'selection_prequalify', 'ip_adr', ip)
+            if not dlm_res_sp:
+                for i in range(7, 11):
                     ws.cell(row=counter, column=i, value='Null')
-                mod_dict.update({"DLM Initial Profile Selection": "Null", "DLM NE Profile Sync": "Null",
-                                 "DLM Profile Configuration Function": "Null"})
+                mod_dict.update({"DLM Selection Prequalify": "Null", "DLM Initial Profile Selection": "Null",
+                                 "DLM NE Profile Sync": "Null", "DLM Profile Configuration Function": "Null"})
             else:
-                ws.cell(row=counter, column=8, value='OK')
-                mod_dict["DLM Initial Profile Selection"] = 'OK'
+                ws.cell(row=counter, column=7, value='OK')
+                mod_dict["DLM Selection Prequalify"] = "OK"
 
-                dlm_ips_res = dlm_db['initial_profile_selection'].aggregate(
+                dlm_sp_res = dlm_db['selection_prequalify'].aggregate(
                     [
                         {"$match": {"sdate": gsd, "ip_adr": ip}},
                         {"$project": {"state": 1}},
@@ -298,62 +266,98 @@ if __name__ == '__main__':
                     ]
                 )
 
-                dlm_ips_res = list(dlm_ips_res)
-                for i in dlm_ips_res:
-                    if i['_id'] == "Waiting":
-                        ipsDict["Waiting"] = i['count']
-                        mod_dict["IPS Waiting No"] = i['count']
-                    elif i['_id'] == "Initial":
-                        ipsDict["Initial"] = i['count']
-                        mod_dict["IPS Initial No"] = i['count']
-                    elif i['_id'] == "Operation":
-                        ipsDict["Operation"] = i['count']
-                        mod_dict["IPS Operation No"] = i['count']
-                    elif i['_id'] == "OptimizeImpossible":
-                        ipsDict["OptimizeImpossible"] = i['count']
-                        mod_dict["IPS OptimizeImpossible No"] = i['count']
+                dlm_sp_res = list(dlm_sp_res)
+                for id in dlm_sp_res:
+                    if id['_id'] == "InProgress":
+                        spDict["InProgress"] = id['count']
+                        mod_dict["SP InProgress No"] = id['count']
+                    elif id['_id'] == "Stabilize":
+                        spDict['Stabilize'] = id['count']
+                        mod_dict["SP Stabilize No"] = id['count']
                     else:
-                        ipsDict['Unstable'] = i['count']
-                        mod_dict['IPS Unstable No'] = i['count']
+                        spDict['Optimize'] = id['count']
+                        mod_dict["SP Optimize No"] = id['count']
 
-                dlm_res_nps = cursor(dlm_db, 'ne_profile_sync', 'ip_adr', ip)
-                if not dlm_res_nps:
-                    ws.cell(row=counter, column=9, value='Null')
-                    mod_dict['DLM NE Profile Sync'] = 'Null'
+                dlm_res_ips = cursor(dlm_db, 'initial_profile_selection', 'ip_adr', ip)
+                if not dlm_res_ips:
+                    for i in range(8, 11):
+                        ws.cell(row=counter, column=i, value='Null')
+                    mod_dict.update({"DLM Initial Profile Selection": "Null", "DLM NE Profile Sync": "Null",
+                                     "DLM Profile Configuration Function": "Null"})
                 else:
-                    ws.cell(row=counter, column=9, value='OK')
-                    mod_dict['DLM NE Profile Sync'] = 'OK'
+                    ws.cell(row=counter, column=8, value='OK')
+                    mod_dict["DLM Initial Profile Selection"] = 'OK'
 
-                dlm_res_pcf = cursor(dlm_db, 'profile_configuration_function', 'ip_adr', ip)
-                if not dlm_res_pcf:
-                    ws.cell(row=counter, column=10, value='Null')
-                    mod_dict['DLM Profile Configuration Function'] = 'Null'
-                else:
-                    ws.cell(row=counter, column=10, value='OK')
-                    mod_dict['DLM Profile Configuration Function'] = 'OK'
-
-                    pcf_res_se = dlm_db['profile_configuration_function'].aggregate(
+                    dlm_ips_res = dlm_db['initial_profile_selection'].aggregate(
                         [
                             {"$match": {"sdate": gsd, "ip_adr": ip}},
-                            {"$project": {"state": 1, "error": 1}},
+                            {"$project": {"state": 1}},
                             {
                                 "$group":
                                     {
-                                        "_id": {"stat": "$state", "erro": "$error"}
+                                        "_id": "$state"
                                         , "count": {"$sum": 1}
                                     }
                             }
                         ]
                     )
 
-                    pcf_res_se = list(pcf_res_se)
-                    for id in pcf_res_se:
-                        if id['_id']['stat'] == "Success":
-                            pcfDict["Success"] = id['count']
-                            mod_dict["PCF Success No"] = id['count']
+                    dlm_ips_res = list(dlm_ips_res)
+                    for i in dlm_ips_res:
+                        if i['_id'] == "Waiting":
+                            ipsDict["Waiting"] = i['count']
+                            mod_dict["IPS Waiting No"] = i['count']
+                        elif i['_id'] == "Initial":
+                            ipsDict["Initial"] = i['count']
+                            mod_dict["IPS Initial No"] = i['count']
+                        elif i['_id'] == "Operation":
+                            ipsDict["Operation"] = i['count']
+                            mod_dict["IPS Operation No"] = i['count']
+                        elif i['_id'] == "OptimizeImpossible":
+                            ipsDict["OptimizeImpossible"] = i['count']
+                            mod_dict["IPS OptimizeImpossible No"] = i['count']
                         else:
-                            pcfDict[id['_id']['erro']] = id['count']
-                            mod_dict[id['_id']['erro']] = id['count']
+                            ipsDict['Unstable'] = i['count']
+                            mod_dict['IPS Unstable No'] = i['count']
+
+                    dlm_res_nps = cursor(dlm_db, 'ne_profile_sync', 'ip_adr', ip)
+                    if not dlm_res_nps:
+                        ws.cell(row=counter, column=9, value='Null')
+                        mod_dict['DLM NE Profile Sync'] = 'Null'
+                    else:
+                        ws.cell(row=counter, column=9, value='OK')
+                        mod_dict['DLM NE Profile Sync'] = 'OK'
+
+                    dlm_res_pcf = cursor(dlm_db, 'profile_configuration_function', 'ip_adr', ip)
+                    if not dlm_res_pcf:
+                        ws.cell(row=counter, column=10, value='Null')
+                        mod_dict['DLM Profile Configuration Function'] = 'Null'
+                    else:
+                        ws.cell(row=counter, column=10, value='OK')
+                        mod_dict['DLM Profile Configuration Function'] = 'OK'
+
+                        pcf_res_se = dlm_db['profile_configuration_function'].aggregate(
+                            [
+                                {"$match": {"sdate": gsd, "ip_adr": ip}},
+                                {"$project": {"state": 1, "error": 1}},
+                                {
+                                    "$group":
+                                        {
+                                            "_id": {"stat": "$state", "erro": "$error"}
+                                            , "count": {"$sum": 1}
+                                        }
+                                }
+                            ]
+                        )
+
+                        pcf_res_se = list(pcf_res_se)
+                        for id in pcf_res_se:
+                            if id['_id']['stat'] == "Success":
+                                pcfDict["Success"] = id['count']
+                                mod_dict["PCF Success No"] = id['count']
+                            else:
+                                pcfDict[id['_id']['erro']] = id['count']
+                                mod_dict[id['_id']['erro']] = id['count']
 
 # DLM SP
         g = int(spDict.get('InProgress', 0))
