@@ -2,15 +2,11 @@ __author__ = "S. Mehdi Abdollahi"
 
 from datetime import datetime, timedelta
 from ipaddress import ip_address
-import pymongo
 from pymongo import MongoClient
 from openpyxl import Workbook
 
 # Main
 if __name__ == '__main__':
-
-    # my_client = pymongo.MongoClient("mongodb://localhost:27017/")
-    # bulk_op = my_client.get_database('res_db').get_collection('res_cl').initialize_unordered_bulk_op()
 
     wb = Workbook()
     ws = wb.active
@@ -28,7 +24,6 @@ if __name__ == '__main__':
                          "172.30.96.237:27017/?replicaSet=ADFrs&readPreference=secondaryPreferred", connect=False)[
         'adf']
     dlm_db = MongoClient("mongodb://172.30.96.132:27017", connect=False)['dlm']
-
     bulk_op = dlm_db.get_collection('res_cl').initialize_unordered_bulk_op()
 
 # IPs
@@ -189,6 +184,7 @@ if __name__ == '__main__':
         return db[clt].find_one({par1: par2, "sdate": gsd})
 
     for ip in pilot_ips:
+
         mod_dict = {}
         ipsDict = {}
         spDict = {}
@@ -268,13 +264,13 @@ if __name__ == '__main__':
             for id in dlm_sp_res:
                 if id['_id'] == "InProgress":
                     spDict["InProgress"] = id['count']
-                    mod_dict["SP InProgress No"] = id['count']
+                    mod_dict["SP InProgress No."] = id['count']
                 elif id['_id'] == "Stabilize":
                     spDict['Stabilize'] = id['count']
-                    mod_dict["SP Stabilize No"] = id['count']
+                    mod_dict["SP Stabilize No."] = id['count']
                 else:
                     spDict['Optimize'] = id['count']
-                    mod_dict["SP Optimize No"] = id['count']
+                    mod_dict["SP Optimize No."] = id['count']
 
             dlm_res_ips = cursor(dlm_db, 'initial_profile_selection', 'ip_adr', ip)
             if not dlm_res_ips:
@@ -304,19 +300,19 @@ if __name__ == '__main__':
                 for i in dlm_ips_res:
                     if i['_id'] == "Waiting":
                         ipsDict["Waiting"] = i['count']
-                        mod_dict["Waiting"] = i['count']
+                        mod_dict["IPS Waiting No."] = i['count']
                     elif i['_id'] == "Initial":
                         ipsDict["Initial"] = i['count']
-                        mod_dict["Initial"] = i['count']
+                        mod_dict["IPS Initial No."] = i['count']
                     elif i['_id'] == "Operation":
                         ipsDict["Operation"] = i['count']
-                        mod_dict["Operation"] = i['count']
+                        mod_dict["IPS Operation No."] = i['count']
                     elif i['_id'] == "OptimizeImpossible":
                         ipsDict["OptimizeImpossible"] = i['count']
-                        mod_dict["OptimizeImpossible"] = i['count']
+                        mod_dict["IPS OptimizeImpossible No."] = i['count']
                     else:
                         ipsDict['Unstable'] = i['count']
-                        mod_dict['Unstable'] = i['count']
+                        mod_dict['IPS Unstable No.'] = i['count']
 
                 dlm_res_nps = cursor(dlm_db, 'ne_profile_sync', 'ip_adr', ip)
                 if not dlm_res_nps:
@@ -352,29 +348,29 @@ if __name__ == '__main__':
                     for id in pcf_res_se:
                         if id['_id']['stat'] == "Success":
                             pcfDict["Success"] = id['count']
-                            mod_dict["PCF Success"] = id['count']
+                            mod_dict["PCF Success No."] = id['count']
                         else:
                             pcfDict[id['_id']['erro']] = id['count']
                             mod_dict[id['_id']['erro']] = id['count']
 
-        # DLM SP
+# DLM SP
         g = int(spDict.get('InProgress', 0))
         h = int(spDict.get('Stabilize', 0))
         i = int(spDict.get('Optimize', 0))
-        # DLM IPS
+# DLM IPS
         j = int(ipsDict.get('Waiting', 0))
         k = int(ipsDict.get('Initial', 0))
         l = int(ipsDict.get('Operation', 0))
         m = int(ipsDict.get('OptimizeImpossible', 0))
         a = int(ipsDict.get('Unstable', 0))
-        # DLM PCF
+# DLM PCF
         b = int(pcfDict.get('Success', 0))
         c = int(pcfDict.get('rolled back', 0))
         d = int(pcfDict.get('line is down', 0))
         e = int(pcfDict.get('retry limit reached!', 0))
         f = int(pcfDict.get('current profile is not available', 0))
 
-        # Worksheet insertions
+# Worksheet insertions
         ws.cell(row=counter, column=11, value=g)
         ws.cell(row=counter, column=12, value=h)
         ws.cell(row=counter, column=13, value=i)
