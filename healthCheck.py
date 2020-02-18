@@ -181,6 +181,7 @@ if __name__ == '__main__':
                "PCF TOTAL"])
 
     counter = 2
+    db_row_counter = 0
 
     def cursor(db, clt, par1, par2):
         return db[clt].find_one({par1: par2, "sdate": gsd})
@@ -396,13 +397,25 @@ if __name__ == '__main__':
 
         print(mod_dict)
         bulk_op.find({"ip": ip, "sdate": gsd}).upsert().update_one({"$set": mod_dict})
+        db_row_counter += 1
 
         counter += 1
 
-    try:
-        bulk_op.execute()
-    except BulkWriteError as bwe:
-        print(bwe.details)
-        raise
+    option = input("Type of report (db/xl): ")
 
-    y = wb.save("/home/mehdi/PycharmProjects/DLMO/healthCheck reports/v9/rpt-" + str(gsd) + ".xlsx")
+    if option != 'db' and option != 'xl':
+        print('Invalid type.')
+
+    elif option == 'db':
+        if db_row_counter != 0:
+            try:
+                bulk_op.execute()
+            except BulkWriteError as bwe:
+                print(bwe.details)
+                raise
+        else:
+            print("Nothing Upserted.")
+
+    elif option == 'xl':
+        wb.save("/home/mehdi/PycharmProjects/DLMO/healthCheck reports/v9/rpt-" + str(gsd) + ".xlsx")
+        print("See results in: /home/mehdi/PycharmProjects/DLMO/healthCheck reports . ")
