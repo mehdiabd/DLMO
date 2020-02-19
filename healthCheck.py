@@ -241,7 +241,7 @@ if __name__ == '__main__':
 
         adf_wq_2 = adf_db['weighted_quality'].find_one({'ip_adr': ip, "sdate": get_short_date(-2)})
         if not adf_wq_2:
-            continue
+            pass
         else:
             dlm_res_sp = cursor(dlm_db, 'selection_prequalify', 'ip_adr', ip)
             if not dlm_res_sp:
