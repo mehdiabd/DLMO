@@ -1,7 +1,6 @@
-from pymongo.errors import BulkWriteError
-
 __author__ = "S. Mehdi Abdollahi"
 
+from pymongo.errors import BulkWriteError
 from datetime import datetime, timedelta
 from ipaddress import ip_address
 from pymongo import MongoClient
