@@ -240,6 +240,10 @@ if __name__ == '__main__':
 
         adf_wq_2 = adf_db['weighted_quality'].find_one({'ip_adr': ip, "sdate": get_short_date(-2)})
         if not adf_wq_2:
+            for i in range(7, 11):
+                ws.cell(row=counter, column=i, value='Null')
+            mod_dict.update({"DLM Selection Prequalify": "Null", "DLM Initial Profile Selection": "Null",
+                             "DLM NE Profile Sync": "Null", "DLM Profile Configuration Function": "Null"})
             pass
         else:
             dlm_res_sp = cursor(dlm_db, 'selection_prequalify', 'ip_adr', ip)
