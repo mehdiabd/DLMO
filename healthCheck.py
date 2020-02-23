@@ -191,7 +191,7 @@ if __name__ == '__main__':
 
             if option != 'db' and option != 'xl' and option != 'ext':
                 print('Invalid type.')
-                continue
+                #continue
 
             elif option == 'db':
                 if db_row_counter != 0:
@@ -203,12 +203,12 @@ if __name__ == '__main__':
                         raise
                 else:
                     print("Nothing Upserted.")
-                continue
+                #continue
 
             elif option == 'xl':
                 wb.save("/home/mehdi/PycharmProjects/DLMO/healthCheck reports/v9/rpt-" + str(gsd) + ".xlsx")
                 print("See results in: /home/mehdi/PycharmProjects/DLMO/healthCheck reports . ")
-                continue
+                #continue
 
             elif option == 'ext':
                 print('Bye.')
