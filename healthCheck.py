@@ -185,6 +185,36 @@ if __name__ == '__main__':
     def cursor(db, clt, par1, par2):
         return db[clt].find_one({par1: par2, "sdate": gsd})
 
+    def ui():
+        while True:
+            option = input("Type of report (db/xl) or 'ext' to exit app: ")
+
+            if option != 'db' and option != 'xl' and option != 'ext':
+                print('Invalid type.')
+                continue
+
+            elif option == 'db':
+                if db_row_counter != 0:
+                    try:
+                        bulk_op.execute()
+                        print('Everything OK')
+                    except BulkWriteError as bwe:
+                        print(bwe.details)
+                        raise
+                else:
+                    print("Nothing Upserted.")
+                continue
+
+            elif option == 'xl':
+                wb.save("/home/mehdi/PycharmProjects/DLMO/healthCheck reports/v9/rpt-" + str(gsd) + ".xlsx")
+                print("See results in: /home/mehdi/PycharmProjects/DLMO/healthCheck reports . ")
+                continue
+
+            elif option == 'ext':
+                print('Bye.')
+                break
+
+
     for ip in pilot_ips:
 
         mod_dict = {}
@@ -404,21 +434,4 @@ if __name__ == '__main__':
 
         counter += 1
 
-    option = input("Type of report (db/xl): ")
-
-    if option != 'db' and option != 'xl':
-        print('Invalid type.')
-
-    elif option == 'db':
-        if db_row_counter != 0:
-            try:
-                bulk_op.execute()
-            except BulkWriteError as bwe:
-                print(bwe.details)
-                raise
-        else:
-            print("Nothing Upserted.")
-
-    elif option == 'xl':
-        wb.save("/home/mehdi/PycharmProjects/DLMO/healthCheck reports/v9/rpt-" + str(gsd) + ".xlsx")
-        print("See results in: /home/mehdi/PycharmProjects/DLMO/healthCheck reports . ")
+    ui()
