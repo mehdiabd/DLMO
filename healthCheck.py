@@ -24,6 +24,9 @@ if __name__ == '__main__':
     adf_db = MongoClient("mongodb://172.30.96.235:27017,172.30.96.236:27017,"
                          "172.30.96.237:27017/?replicaSet=ADFrs&readPreference=secondaryPreferred", connect=False)[
         'adf']
+    scf_db = MongoClient("mongodb://172.30.96.195:27017,172.30.96.196:27017,"
+                         "172.30.96.222:27017/?replicaSet=SCFrs&readPreference=secondaryPreferred", connect=False)[
+        'scf']
     dlm_db = MongoClient("mongodb://172.30.96.132:27017", connect=False)['dlm']
     bulk_op = dlm_db.get_collection('res_cl').initialize_unordered_bulk_op()
 
@@ -167,8 +170,8 @@ if __name__ == '__main__':
         "172.31.34.50",
         "172.31.34.53"
     ]
-    # Chitgar IP
-    # pilot_ips = ["10.41.16.17"]
+# Chitgar IP
+    # pilot_ips = ["172.19.11.59"]
 
     print("Checking the System Health ...")
 
@@ -177,7 +180,7 @@ if __name__ == '__main__':
                "DLM Profile Configuration Function", "SP InProgress", "SP Stabilize", "SP Optimize", "SP TOTAL",
                "IPS Waiting", "IPS Initial", "IPS Operation", "IPS OptimizeImpossible", "IPS Unstable", "IPS TOTAL",
                "PCF Success", "PCF Roll Back", "PCF Line Down", "PCF Retry Limit Reach", "PCF C Profile N/A",
-               "PCF TOTAL"])
+               "PCF TOTAL", "null_service_profile_ports"])
 
     counter = 2
     db_row_counter = 0
@@ -223,6 +226,12 @@ if __name__ == '__main__':
         pcfDict = {}
         ws.append([ip])
         collection = "ne" + str(int(ip_address(ip)))
+
+        id = scf_db['network_element'].find_one({"ip_address": ip}, {"_id": 1})
+        object_id = str(id['_id'])
+        scf_nep_res = scf_db['network_element_port'].count_documents({"network_element_id": object_id, "service_profile_id": "null"})
+        ws.cell(row=counter, column=27, value=scf_nep_res)
+        mod_dict["null_service_profile_ports"] = scf_nep_res
 
         dcf_pn_res = cursor(dcf_db, collection, "ptype", 'p/n')
         if not dcf_pn_res:
